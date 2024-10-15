@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".CommunicationActivity">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/clWfdAdapterDisabled"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="32dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/tvWfdError"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="WiFi Direct - Error"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:gravity="center"
+            android:text="It seems your WiFi Direct Adapter is off. Please ensure that you turn ON WiFI in your settings!"
+            android:textSize="11sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tvWfdError" />
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/clNoWifiDirectConnection"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="32dp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <EditText
+            android:id="@+id/etPassword"
+            android:layout_width="249dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:hint="Enter Password..."
+            android:inputType="textMultiLine"
+            android:maxLines="5"
+            android:minLines="3"
+            app:layout_constraintBottom_toBottomOf="@+id/tvPassword"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.733"
+            app:layout_constraintStart_toEndOf="@+id/tvPassword"
+            app:layout_constraintTop_toTopOf="@+id/tvPassword"
+            app:layout_constraintVertical_bias="0.523" />
+
+        <TextView
+            android:id="@+id/tvPassword"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:text="Password:"
+            app:layout_constraintEnd_toEndOf="@+id/tvSSID"
+            app:layout_constraintTop_toBottomOf="@+id/tvSSID" />
+
+        <EditText
+            android:id="@+id/etSSID"
+            android:layout_width="249dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:hint="Enter SSID..."
+            android:inputType="textMultiLine"
+            android:maxLines="5"
+            android:minLines="3"
+            app:layout_constraintBottom_toBottomOf="@+id/tvSSID"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.733"
+            app:layout_constraintStart_toEndOf="@+id/tvSSID"
+            app:layout_constraintTop_toTopOf="@+id/tvSSID"
+            app:layout_constraintVertical_bias="0.523" />
+
+        <TextView
+            android:id="@+id/tvSSID"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:text="SSID:"
+            app:layout_constraintEnd_toEndOf="@+id/tvStudentID"
+            app:layout_constraintTop_toBottomOf="@+id/tvStudentID" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvPeerListing"
+            android:layout_width="340dp"
+            android:layout_height="380dp"
+            android:layout_marginTop="24dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.493"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tvNearbyClasses"
+            app:layout_constraintVertical_bias="0.0" />
+
+        <Button
+            android:id="@+id/btnSearchClasses"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:onClick="discoverNearbyPeers"
+            android:text="Search for Classes"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.502"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/etPassword" />
+
+        <TextView
+            android:id="@+id/tvStudentID"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Student ID:"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <EditText
+            android:id="@+id/etStudentID"
+            android:layout_width="249dp"
+            android:layout_height="40dp"
+            android:layout_weight="1"
+            android:hint="Enter Student ID..."
+            android:inputType="textMultiLine"
+            android:maxLines="5"
+            android:minLines="3"
+            app:layout_constraintBottom_toBottomOf="@+id/tvStudentID"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.7"
+            app:layout_constraintStart_toEndOf="@+id/tvStudentID"
+            app:layout_constraintTop_toTopOf="@+id/tvStudentID" />
+
+        <TextView
+            android:id="@+id/tvNearbyClasses"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="40dp"
+            android:text="Nearby Classes:"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/btnSearchClasses" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/clHasConnection"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:padding="24dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:visibility="visible">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvChat"
+            android:layout_width="364dp"
+            android:layout_height="567dp"
+            android:layout_marginTop="14dp"
+            app:layout_constraintBottom_toTopOf="@+id/llChatSend"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tvCurrentlyAttending"
+            app:layout_constraintVertical_bias="1.0" />
+
+        <LinearLayout
+            android:id="@+id/llChatSend"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent">
+
+            <EditText
+                android:id="@+id/etMessage"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:hint="Message Teacher..."
+                android:inputType="textMultiLine"
+                android:maxLines="5"
+                android:minLines="3" />
+
+            <Button
+                android:id="@+id/btnSend"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.4"
+                android:onClick="sendMessage"
+                android:text="Send" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvCurrentlyAttending"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Currently Attending: "
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

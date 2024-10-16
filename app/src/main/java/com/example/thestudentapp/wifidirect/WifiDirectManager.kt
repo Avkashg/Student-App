@@ -44,22 +44,6 @@ class WifiDirectManager(
                     Log.e("WFDManager","The peer listing has changed")
                 }
             }
-//            WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION -> {
-//                val wifiP2pInfo = when{
-//                    Build.VERSION.SDK_INT >= 33 -> intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO, WifiP2pInfo::class.java)!!
-//                    else -> @Suppress("DEPRECATION") intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_INFO)!!
-//                }
-//                val tmpGroupInfo = when{
-//                    !(wifiP2pInfo.groupFormed)->null
-//                    Build.VERSION.SDK_INT >= 33 -> intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP, WifiP2pGroup::class.java)!!
-//                    else -> @Suppress("DEPRECATION") intent.getParcelableExtra(WifiP2pManager.EXTRA_WIFI_P2P_GROUP)!!
-//                }
-//                if (groupInfo != tmpGroupInfo){
-//                    groupInfo = tmpGroupInfo
-//                    Log.e("WFDManager","The group status has changed")
-//                    iFaceImpl.onGroupStatusChanged(groupInfo)
-//                }
-//            }
 
             WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION -> {
                 val thisDevice = when{
@@ -113,43 +97,4 @@ class WifiDirectManager(
 
         })
     }
-
-//    fun getNetworkInfo(view: View){
-//        manager.requestConnectionInfo(channel) { info ->
-//            if (info.groupFormed && info.isGroupOwner) {
-//                val groupOwnerAddress = info.groupOwnerAddress.hostAddress
-//                val ssid = info.groupOwnerAddress.hostAddress // Use this as the network SSID (not visible to students)
-//                val passphrase = "default_password"  // Example, replace with actual passphrase if needed
-//
-//                val tvNetwork: TextView = view.findViewById(R.id.tvClassNetwork)
-//                val tvPassword: TextView = view.findViewById(R.id.tvNetworkPassword)
-//                tvNetwork.text = "Class Network: $ssid"
-//                tvPassword.text = "Password: $passphrase"
-//            }
-//        }
-//    }
-
-    fun setDeviceName(studentId: String) {
-        try {
-            val method = manager.javaClass.getMethod(
-                "setDeviceName",
-                WifiP2pManager.Channel::class.java,
-                String::class.java,
-                WifiP2pManager.ActionListener::class.java
-            )
-
-            method.invoke(manager, channel, studentId, object : WifiP2pManager.ActionListener {
-                override fun onSuccess() {
-                    Log.d("WifiDirectManager", "Device name set to $studentId")
-                }
-
-                override fun onFailure(reason: Int) {
-                    Log.e("WifiDirectManager", "Failed to set device name: $reason")
-                }
-            })
-        } catch (e: Exception) {
-            Log.e("WifiDirectManager", "Error setting device name", e)
-        }
-    }
-
 }

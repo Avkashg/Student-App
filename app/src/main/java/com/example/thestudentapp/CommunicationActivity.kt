@@ -7,6 +7,7 @@ import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pGroup
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -59,7 +60,6 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
             insets
         }
 
-
         val manager: WifiP2pManager = getSystemService(WIFI_P2P_SERVICE) as WifiP2pManager
         val channel = manager.initialize(this, mainLooper, null)
         wfdManager = WifiDirectManager(manager, channel, this)
@@ -98,18 +98,10 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
 
     fun discoverNearbyPeers(view: View) {
         val wfdNoConnectionView: ConstraintLayout = findViewById(R.id.clNoWifiDirectConnection)
-
         val id: EditText = wfdNoConnectionView.findViewById(R.id.etStudentID)
-        val studentID: String = id.text.toString().trim()
-
-        val ssid: EditText = wfdNoConnectionView.findViewById(R.id.etSSID)
-        val ssidText: String = ssid.text.toString().trim()
-
-        val password: EditText = wfdNoConnectionView.findViewById(R.id.etPassword)
-        val passwordText: String = password.text.toString().trim()
+        val studentID = id.text.toString().trim()
 
         if(isValidStudentID(studentID)){
-            wfdManager?.setDeviceName(studentID)
             wfdManager?.discoverPeers()
             Toast.makeText(this, "Searching...", Toast.LENGTH_SHORT).show()
 
@@ -117,6 +109,7 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
         else
             Toast.makeText(this, "Invalid ID", Toast.LENGTH_SHORT).show()
     }
+
 
     private fun updateUI(){
         //The rules for updating the UI are as follows:
@@ -178,10 +171,13 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
     }
 
     override fun onPeerClicked(peer: WifiP2pDevice) {
+        val wfdNoConnectionView: ConstraintLayout = findViewById(R.id.clNoWifiDirectConnection)
+        val id: EditText = wfdNoConnectionView.findViewById(R.id.etStudentID)
+        val studentID = id.text.toString().trim()
         wfdManager?.connectToPeer(peer)
         //connect to the server
         CoroutineScope(Dispatchers.Main).launch {
-            client?.connect()
+            client?.connect(studentID)
         }
         wfdHasConnection = true
         updateUI()

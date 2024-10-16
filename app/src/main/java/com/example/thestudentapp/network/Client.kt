@@ -23,15 +23,15 @@ class Client(private val serverIp: String, private val serverPort: Int) {
     private var writer: PrintWriter? = null
 
     // Connect to the TCP server
-    suspend fun connect() {
+    suspend fun connect(studentID: String) {
         withContext(Dispatchers.IO) {
             try {
                 socket = Socket(serverIp, serverPort)
                 reader = BufferedReader(InputStreamReader(socket?.getInputStream()))
                 writer = socket?.getOutputStream()?.let { PrintWriter(it, true) }
-                var ip = socket!!.inetAddress.hostAddress
                 Log.d("TcpClient", "Connected to server")
-                sendInitialMessage(ContentModel("I am here ", ip ))
+
+                sendInitialMessage(studentID)
                 receiveMessage()
             } catch (e: Exception) {
                 Log.e("TcpClient", "Error connecting to server", e)
@@ -40,14 +40,15 @@ class Client(private val serverIp: String, private val serverPort: Int) {
     }
 
     // Send the student ID (or any initial message) to the server
-    suspend fun sendInitialMessage(content: ContentModel) {
+    suspend fun sendInitialMessage(studentID: String) {
         withContext(Dispatchers.IO) {
             try {
-                // You may want to format this as JSON or any other string format
-                val formattedMessage = "${content.senderIp}: ${content.message}"
-                writer?.println(formattedMessage)
+                socket = Socket(serverIp, serverPort)
+                reader = BufferedReader(InputStreamReader(socket?.getInputStream()))
+                writer = socket?.getOutputStream()?.let { PrintWriter(it, true) }
+                writer?.println(studentID)
                 writer?.flush()
-                Log.d("TcpClient", "Message sent: $formattedMessage")
+                Log.d("TcpClient", "Message sent: $studentID")
             } catch (e: Exception) {
                 Log.e("TcpClient", "Error sending message", e)
             }

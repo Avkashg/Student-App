@@ -8,15 +8,10 @@ import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pDeviceList
 import android.net.wifi.p2p.WifiP2pGroup
-import android.net.wifi.p2p.WifiP2pInfo
 import android.net.wifi.p2p.WifiP2pManager
 import android.net.wifi.p2p.WifiP2pManager.ActionListener
-import android.net.wifi.p2p.WifiP2pManager.P2pStateListener
 import android.os.Build
 import android.util.Log
-import android.view.View
-import android.widget.TextView
-import com.example.thestudentapp.R
 
 /// This [WifiDirectManager] class is a [BroadcastReceiver] that listens for events fired from the
 /// operating system and relays the relevant information using the [WiFiDirectInterface] to the

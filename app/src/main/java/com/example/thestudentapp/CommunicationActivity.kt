@@ -1,23 +1,19 @@
 package com.example.thestudentapp
 
-import android.content.Context
 import android.content.IntentFilter
-import android.net.wifi.WifiManager
 import android.net.wifi.p2p.WifiP2pDevice
-import android.net.wifi.p2p.WifiP2pGroup
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Bundle
-import android.util.Log
+import android.view.View
+import android.widget.EditText
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import android.view.View
-import android.widget.EditText
-import android.widget.Toast
-import androidx.constraintlayout.widget.ConstraintLayout
 import com.example.thestudentapp.chatlist.ChatListAdapter
 import com.example.thestudentapp.models.ContentModel
 import com.example.thestudentapp.network.Client
@@ -29,6 +25,7 @@ import com.example.thestudentapp.wifidirect.WifiDirectManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.net.Socket
 
 class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerListAdapterInterface,
     NetworkMessageInterface {
@@ -112,14 +109,6 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
 
 
     private fun updateUI(){
-        //The rules for updating the UI are as follows:
-        // IF the WFD adapter is NOT enabled then
-        //      Show UI that says turn on the wifi adapter
-        // ELSE IF there is NO WFD connection then i need to show a view that allows the user to either
-        // 1) create a group with them as the group owner OR
-        // 2) discover nearby groups
-        // ELSE IF there are nearby groups found, i need to show them in a list
-        // ELSE IF i have a WFD connection i need to show a chat interface where i can send/receive messages
         val wfdAdapterErrorView: ConstraintLayout = findViewById(R.id.clWfdAdapterDisabled)
         wfdAdapterErrorView.visibility = if (!wfdAdapterEnabled) View.VISIBLE else View.GONE
 
@@ -174,15 +163,17 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
         val wfdNoConnectionView: ConstraintLayout = findViewById(R.id.clNoWifiDirectConnection)
         val id: EditText = wfdNoConnectionView.findViewById(R.id.etStudentID)
         val studentID = id.text.toString().trim()
+
         wfdManager?.connectToPeer(peer)
+
         //connect to the server
         CoroutineScope(Dispatchers.Main).launch {
             client?.connect(studentID)
         }
+
         wfdHasConnection = true
         updateUI()
     }
-
 
     override fun onContent(content: ContentModel) {
         runOnUiThread{
@@ -192,8 +183,7 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
     }
 
     private fun isValidStudentID(studentID: String): Boolean{
-        val studentIDPattern = Regex("^\\d{9}$")
-        return studentIDPattern.matches(studentID)
+        val id = studentID.toInt()
+        return (id in 816000000..816999999)
     }
-
 }

@@ -31,8 +31,8 @@ class Client(private val serverIp: String, private val serverPort: Int) {
                 writer = socket?.getOutputStream()?.let { PrintWriter(it, true) }
                 Log.d("TcpClient", "Connected to server")
 
-                sendInitialMessage(studentID)
-                receiveMessage()
+                sendInitialMessage(studentID) //sends the student ID to the server
+                receiveMessage() //receives challenge back from server if student ID is part of class
             } catch (e: Exception) {
                 Log.e("TcpClient", "Error connecting to server", e)
             }
@@ -54,6 +54,20 @@ class Client(private val serverIp: String, private val serverPort: Int) {
             }
         }
     }
+    suspend fun sendMessage(message: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                socket = Socket(serverIp, serverPort)
+                reader = BufferedReader(InputStreamReader(socket?.getInputStream()))
+                writer = socket?.getOutputStream()?.let { PrintWriter(it, true) }
+                writer?.println(message)
+                writer?.flush()
+                Log.d("TcpClient", "Message sent: $message")
+            } catch (e: Exception) {
+                Log.e("TcpClient", "Error sending message", e)
+            }
+        }
+    }
 
     // Receive the challenge from the server
     suspend fun receiveMessage(): String? {
@@ -69,12 +83,12 @@ class Client(private val serverIp: String, private val serverPort: Int) {
         }
     }
 
-    // Send the encrypted response back to the server
-//    @RequiresApi(Build.VERSION_CODES.O)
-//    suspend fun sendEncryptedResponse(response: String, aesKey: SecretKeySpec, aesIv: IvParameterSpec) {
-//        val encryptedResponse = encryptMessage(response, aesKey, aesIv)
-//        sendMessage(ContentModel(encryptedResponse, "your_ip_here"))  // Update senderIp as needed
-//    }
+    //Send the encrypted response back to the server
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun sendEncryptedResponse(response: String, aesKey: SecretKeySpec, aesIv: IvParameterSpec) {
+        val encryptedResponse = encryptMessage(response, aesKey, aesIv)
+        sendMessage(encryptedResponse)
+    }
 
     // Disconnect from the server
     suspend fun disconnect() {

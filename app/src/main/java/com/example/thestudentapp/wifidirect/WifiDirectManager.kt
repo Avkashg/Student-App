@@ -58,6 +58,7 @@ class WifiDirectManager(
         config.deviceAddress = peer.deviceAddress
         manager.connect(channel, config, object : ActionListener {
             override fun onSuccess() {
+                stopPeerDiscovery()
                 Log.e("WFDManager","Successfully attempted to connect to a peer '${peer.deviceName}'")
             }
 
@@ -90,6 +91,18 @@ class WifiDirectManager(
                 Log.e("WFDManager","An error occurred while trying to disconnect from the group")
             }
 
+        })
+    }
+
+    fun stopPeerDiscovery() {
+        manager.stopPeerDiscovery(channel, object : ActionListener {
+            override fun onSuccess() {
+                Log.d("WFDManager", "Peer discovery stopped successfully.")
+            }
+
+            override fun onFailure(reason: Int) {
+                Log.e("WFDManager", "Failed to stop peer discovery: $reason")
+            }
         })
     }
 }

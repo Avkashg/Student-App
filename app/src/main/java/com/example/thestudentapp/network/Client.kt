@@ -23,6 +23,7 @@ class Client(private val serverIp: String, private val serverPort: Int) {
     private var writer: PrintWriter? = null
 
     // Connect to the TCP server
+    @RequiresApi(Build.VERSION_CODES.O)
     suspend fun connect(studentID: String) {
         withContext(Dispatchers.IO) {
             try {
@@ -31,35 +32,37 @@ class Client(private val serverIp: String, private val serverPort: Int) {
                 writer = socket?.getOutputStream()?.let { PrintWriter(it, true) }
                 Log.d("TcpClient", "Connected to server")
 
-                sendInitialMessage(studentID) //sends the student ID to the server
-                receiveMessage() //receives challenge back from server if student ID is part of class
+                withContext(Dispatchers.IO){
+                    try{
+                        writer?.println(studentID)
+                        Log.d("Tcp Client", "Student ID sent: $studentID")
+
+                        val challenge = reader?.readLine()
+                        if(challenge != null){
+                            Log.d("Tcp Server", "Challenged received: $challenge")
+                            val seed = hashStrSha256(studentID)
+                            val aesKey = generateAESKey(seed)
+                            val aesIv = generateIV(seed)
+
+                            val encryptedText = encryptMessage(challenge,aesKey,aesIv)
+                            writer?.println(encryptedText)
+                            Log.d("Tcp Client","Encrypted text sent: $encryptedText")
+                        }else{
+                            Log.e("Tcp Client", "Challenge not received")
+                        }
+                    }catch (e:Exception){
+                        Log.d("Tcp Client", "ERROR")
+                    }
+                }
             } catch (e: Exception) {
                 Log.e("TcpClient", "Error connecting to server", e)
             }
         }
     }
 
-    // Send the student ID (or any initial message) to the server
-    suspend fun sendInitialMessage(studentID: String) {
-        withContext(Dispatchers.IO) {
-            try {
-                socket = Socket(serverIp, serverPort)
-                reader = BufferedReader(InputStreamReader(socket?.getInputStream()))
-                writer = socket?.getOutputStream()?.let { PrintWriter(it, true) }
-                writer?.println(studentID)
-                writer?.flush()
-                Log.d("TcpClient", "Message sent: $studentID")
-            } catch (e: Exception) {
-                Log.e("TcpClient", "Error sending message", e)
-            }
-        }
-    }
     suspend fun sendMessage(message: String) {
         withContext(Dispatchers.IO) {
             try {
-                socket = Socket(serverIp, serverPort)
-                reader = BufferedReader(InputStreamReader(socket?.getInputStream()))
-                writer = socket?.getOutputStream()?.let { PrintWriter(it, true) }
                 writer?.println(message)
                 writer?.flush()
                 Log.d("TcpClient", "Message sent: $message")
@@ -67,27 +70,6 @@ class Client(private val serverIp: String, private val serverPort: Int) {
                 Log.e("TcpClient", "Error sending message", e)
             }
         }
-    }
-
-    // Receive the challenge from the server
-    suspend fun receiveMessage(): String? {
-        return withContext(Dispatchers.IO) {
-            try {
-                reader?.readLine().also {
-                    Log.d("TcpClient", "Message received: $it")
-                }
-            } catch (e: Exception) {
-                Log.e("TcpClient", "Error receiving message", e)
-                null
-            }
-        }
-    }
-
-    //Send the encrypted response back to the server
-    @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun sendEncryptedResponse(response: String, aesKey: SecretKeySpec, aesIv: IvParameterSpec) {
-        val encryptedResponse = encryptMessage(response, aesKey, aesIv)
-        sendMessage(encryptedResponse)
     }
 
     // Disconnect from the server
@@ -131,12 +113,12 @@ class Client(private val serverIp: String, private val serverPort: Int) {
         return hashedString.joinToString("") { String.format("%02x", it) }
     }
 
-    fun generateAESKey(seed: String): SecretKeySpec {
+    private fun generateAESKey(seed: String): SecretKeySpec {
         val first32Chars = seed.take(32).padEnd(32, '0')  // Ensure length is 32
         return SecretKeySpec(first32Chars.toByteArray(), "AES")
     }
 
-    fun generateIV(seed: String): IvParameterSpec {
+    private fun generateIV(seed: String): IvParameterSpec {
         val first16Chars = seed.take(16).padEnd(16, '0')  // Ensure length is 16
         return IvParameterSpec(first16Chars.toByteArray())
     }

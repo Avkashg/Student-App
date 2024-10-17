@@ -54,7 +54,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:visibility="visible">
+        tools:visibility="gone">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvPeerListing"
@@ -123,12 +123,12 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        tools:visibility="gone">
+        tools:visibility="visible">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvChat"
-            android:layout_width="364dp"
-            android:layout_height="567dp"
+            android:layout_width="361dp"
+            android:layout_height="476dp"
             android:layout_marginTop="14dp"
             app:layout_constraintBottom_toTopOf="@+id/llChatSend"
             app:layout_constraintEnd_toEndOf="parent"
@@ -170,8 +170,20 @@
             android:layout_height="wrap_content"
             android:text="Currently Attending: "
             app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="0.497"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
+
+        <Button
+            android:id="@+id/btnDisocnnect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Disconnect"
+            android:onClick="disconnect"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tvCurrentlyAttending" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

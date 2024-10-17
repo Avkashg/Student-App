@@ -3,11 +3,13 @@ package com.example.thestudentapp
 import android.content.IntentFilter
 import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pManager
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.ViewCompat
@@ -71,8 +73,7 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
         rvChatList.adapter = chatListAdapter
         rvChatList.layoutManager = LinearLayoutManager(this)
 
-        //initialize the client with the server's ip and port
-        client = Client("192.168.100.196",8888)
+
     }
 
     override fun onResume() {
@@ -91,6 +92,7 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
 
     fun disconnect(view: View){
         wfdManager?.disconnect()
+        updateUI()
     }
 
     fun discoverNearbyPeers(view: View) {
@@ -159,12 +161,16 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
         toast.show()
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onPeerClicked(peer: WifiP2pDevice) {
         val wfdNoConnectionView: ConstraintLayout = findViewById(R.id.clNoWifiDirectConnection)
         val id: EditText = wfdNoConnectionView.findViewById(R.id.etStudentID)
         val studentID = id.text.toString().trim()
 
         wfdManager?.connectToPeer(peer)
+
+        //initialize the client with the server's ip and port
+        client = Client("192.168.100.196",8888)
 
         //connect to the server
         CoroutineScope(Dispatchers.Main).launch {

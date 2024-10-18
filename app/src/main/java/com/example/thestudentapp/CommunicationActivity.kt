@@ -5,6 +5,7 @@ import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pManager
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.EditText
 import android.widget.Toast
@@ -31,6 +32,7 @@ import java.net.Socket
 
 class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerListAdapterInterface,
     NetworkMessageInterface {
+
     private var wfdManager: WifiDirectManager? = null
 
     private val intentFilter = IntentFilter().apply {
@@ -72,8 +74,6 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
         val rvChatList: RecyclerView = findViewById(R.id.rvChat)
         rvChatList.adapter = chatListAdapter
         rvChatList.layoutManager = LinearLayoutManager(this)
-
-
     }
 
     override fun onResume() {
@@ -90,7 +90,15 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
         }
     }
 
-    fun disconnect(view: View){
+    override fun onDestroy() {
+        super.onDestroy()
+        // Call disconnect in a coroutine
+        CoroutineScope(Dispatchers.Main).launch {
+            client?.disconnect() // Clean up the client connection
+        }
+    }
+
+    fun disconnect(view: View) {
         wfdManager?.disconnect()
         updateUI()
     }
@@ -100,65 +108,78 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
         val id: EditText = wfdNoConnectionView.findViewById(R.id.etStudentID)
         val studentID = id.text.toString().trim()
 
-        if(isValidStudentID(studentID)){
+        if (isValidStudentID(studentID)) {
             wfdManager?.discoverPeers()
             Toast.makeText(this, "Searching...", Toast.LENGTH_SHORT).show()
-
-        }
-        else
+        } else {
             Toast.makeText(this, "Invalid ID", Toast.LENGTH_SHORT).show()
+        }
     }
 
-
-    private fun updateUI(){
+    private fun updateUI() {
         val wfdAdapterErrorView: ConstraintLayout = findViewById(R.id.clWfdAdapterDisabled)
         wfdAdapterErrorView.visibility = if (!wfdAdapterEnabled) View.VISIBLE else View.GONE
 
-        val wfdNoConnectionView:ConstraintLayout = findViewById(R.id.clNoWifiDirectConnection)
+        val wfdNoConnectionView: ConstraintLayout = findViewById(R.id.clNoWifiDirectConnection)
         wfdNoConnectionView.visibility = if (wfdAdapterEnabled && !wfdHasConnection) View.VISIBLE else View.GONE
 
-        val rvPeerList: RecyclerView= findViewById(R.id.rvPeerListing)
+        val rvPeerList: RecyclerView = findViewById(R.id.rvPeerListing)
         rvPeerList.visibility = if (wfdAdapterEnabled && !wfdHasConnection && hasDevices) View.VISIBLE else View.GONE
 
-        val wfdConnectedView:ConstraintLayout = findViewById(R.id.clHasConnection)
-        wfdConnectedView.visibility = if(wfdHasConnection)View.VISIBLE else View.GONE
+        val wfdConnectedView: ConstraintLayout = findViewById(R.id.clHasConnection)
+        wfdConnectedView.visibility = if (wfdHasConnection) View.VISIBLE else View.GONE
     }
 
-//    suspend fun sendMessage(view: View) {
-//        val etMessage: EditText = findViewById(R.id.etMessage)
-//        val etString = etMessage.text.toString()
-//        val content = ContentModel(etString, deviceIp)
-//        etMessage.text.clear()
-//        client?.sendMessage(content)
-//        chatListAdapter?.addItemToEnd(content)
-//        updateUI()
-//    }
+     //Function to send messages (uncomment and integrate this function into your UI)
+    fun sendMessage(view: View) {
+        val etMessage: EditText = findViewById(R.id.etMessage)
+        val etString = etMessage.text.toString()
+
+        // Check if the message is not empty before proceeding
+        if (etString.isNotEmpty()) {
+            val content = ContentModel(etString, deviceIp) // Create content model
+            etMessage.text.clear()
+
+            // Use CoroutineScope to launch a coroutine for sending the message
+            CoroutineScope(Dispatchers.Main).launch { // Use Main context for UI
+                try {
+                    // Assuming your client is properly initialized and accessible here
+                    client?.sendMessage(content.toString()) // Convert ContentModel to String
+                    chatListAdapter?.addItemToEnd(content) // Update chat list
+                    updateUI() // Refresh UI after sending
+                } catch (e: Exception) {
+                    Log.e("CommunicationActivity", "Failed to send message", e)
+                    Toast.makeText(this@CommunicationActivity, "Failed to send message", Toast.LENGTH_SHORT).show()
+                }
+            }
+        } else {
+            // Optionally show a message to the user if the input is empty
+            Toast.makeText(this, "Please enter a message", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 
     override fun onWiFiDirectStateChanged(isEnabled: Boolean) {
         wfdAdapterEnabled = isEnabled
-        var text = "There was a state change in the WiFi Direct. Currently it is "
-        text = if (isEnabled){
-            "$text enabled!"
+        val text = if (isEnabled) {
+            "There was a state change in the WiFi Direct. Currently it is enabled!"
         } else {
-            "$text disabled! Try turning on the WiFi adapter"
+            "There was a state change in the WiFi Direct. Currently it is disabled! Try turning on the WiFi adapter"
         }
 
-        val toast = Toast.makeText(this, text, Toast.LENGTH_SHORT)
-        toast.show()
+        Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
         updateUI()
     }
 
     override fun onPeerListUpdated(deviceList: Collection<WifiP2pDevice>) {
-        val toast = Toast.makeText(this, "Updated listing of nearby WiFi Direct devices", Toast.LENGTH_SHORT)
-        toast.show()
+        Toast.makeText(this, "Updated listing of nearby WiFi Direct devices", Toast.LENGTH_SHORT).show()
         hasDevices = deviceList.isNotEmpty()
         peerListAdapter?.updateList(deviceList)
         updateUI()
     }
 
     override fun onDeviceStatusChanged(thisDevice: WifiP2pDevice) {
-        val toast = Toast.makeText(this, "Device parameters have been updated" , Toast.LENGTH_SHORT)
-        toast.show()
+        Toast.makeText(this, "Device parameters have been updated", Toast.LENGTH_SHORT).show()
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -169,27 +190,37 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
 
         wfdManager?.connectToPeer(peer)
 
-        //initialize the client with the server's ip and port
-        client = Client("192.168.100.196",8888)
+        // Initialize the client with the server's IP, port, and studentID
+        client = Client("192.168.100.206", 8888, studentID)
 
-        //connect to the server
+        // Connect to the server
         CoroutineScope(Dispatchers.Main).launch {
-            client?.connect(studentID)
+            try {
+                client?.connect() // This will now work with the studentID
+                Toast.makeText(this@CommunicationActivity, "Connected to the server", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(this@CommunicationActivity, "Connection failed: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
         }
 
         wfdHasConnection = true
         updateUI()
     }
 
+
     override fun onContent(content: ContentModel) {
-        runOnUiThread{
+        runOnUiThread {
             chatListAdapter?.addItemToEnd(content)
         }
         updateUI()
     }
 
-    private fun isValidStudentID(studentID: String): Boolean{
-        val id = studentID.toInt()
-        return (id in 816000000..816999999)
+    private fun isValidStudentID(studentID: String): Boolean {
+        return try {
+            val id = studentID.toInt()
+            id in 816000000..816999999
+        } catch (e: NumberFormatException) {
+            false
+        }
     }
 }

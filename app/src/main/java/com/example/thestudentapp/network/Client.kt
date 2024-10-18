@@ -16,7 +16,7 @@ import javax.crypto.spec.SecretKeySpec
 import java.security.MessageDigest
 import java.util.Base64
 
-class Client(private val serverIp: String, private val serverPort: Int) {
+class Client(private val serverIp: String, private val serverPort: Int, private val studentID: String) { // Added studentID here
 
     private var socket: Socket? = null
     private var reader: BufferedReader? = null
@@ -24,7 +24,7 @@ class Client(private val serverIp: String, private val serverPort: Int) {
 
     // Connect to the TCP server
     @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun connect(studentID: String) {
+    suspend fun connect() {  // No need to pass studentID here since it's a class property now
         withContext(Dispatchers.IO) {
             try {
                 socket = Socket(serverIp, serverPort)
@@ -34,17 +34,17 @@ class Client(private val serverIp: String, private val serverPort: Int) {
 
                 withContext(Dispatchers.IO){
                     try{
-                        writer?.println(studentID)
+                        writer?.println(studentID)  // Use class property studentID
                         Log.d("Tcp Client", "Student ID sent: $studentID")
 
                         val challenge = reader?.readLine()
                         if(challenge != null){
-                            Log.d("Tcp Server", "Challenged received: $challenge")
-                            val seed = hashStrSha256(studentID)
+                            Log.d("Tcp Server", "Challenge received: $challenge")
+                            val seed = hashStrSha256(studentID)  // Use class property studentID
                             val aesKey = generateAESKey(seed)
                             val aesIv = generateIV(seed)
 
-                            val encryptedText = encryptMessage(challenge,aesKey,aesIv)
+                            val encryptedText = encryptMessage(challenge, aesKey, aesIv)
                             writer?.println(encryptedText)
                             Log.d("Tcp Client","Encrypted text sent: $encryptedText")
                         }else{
@@ -68,6 +68,27 @@ class Client(private val serverIp: String, private val serverPort: Int) {
                 Log.d("TcpClient", "Message sent: $message")
             } catch (e: Exception) {
                 Log.e("TcpClient", "Error sending message", e)
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    suspend fun receiveMessages() {
+        withContext(Dispatchers.IO) {
+            try {
+                while (socket?.isConnected == true) {
+                    val receivedMessage = reader?.readLine()
+                    if (receivedMessage != null) {
+                        val seed = hashStrSha256(studentID)  // Use class property studentID
+                        val aesKey = generateAESKey(seed)
+                        val aesIv = generateIV(seed)
+
+                        val decryptedMessage = decryptMessage(receivedMessage, aesKey, aesIv)
+                        Log.d("TcpClient", "Message received: $decryptedMessage")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("TcpClient", "Error receiving message", e)
             }
         }
     }

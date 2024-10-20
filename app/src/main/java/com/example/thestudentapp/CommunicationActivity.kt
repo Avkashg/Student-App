@@ -28,10 +28,8 @@ import com.example.thestudentapp.wifidirect.WifiDirectManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.net.Socket
 
-class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerListAdapterInterface,
-    NetworkMessageInterface {
+class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerListAdapterInterface, NetworkMessageInterface {
 
     private var wfdManager: WifiDirectManager? = null
 
@@ -55,6 +53,7 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContentView(R.layout.activity_communication)
+
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
@@ -92,9 +91,8 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
 
     override fun onDestroy() {
         super.onDestroy()
-        // Call disconnect in a coroutine
         CoroutineScope(Dispatchers.Main).launch {
-            client?.disconnect() // Clean up the client connection
+            client?.close() // Clean up the client connection
         }
     }
 
@@ -130,7 +128,6 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
         wfdConnectedView.visibility = if (wfdHasConnection) View.VISIBLE else View.GONE
     }
 
-     //Function to send messages (uncomment and integrate this function into your UI)
     fun sendMessage(view: View) {
         val etMessage: EditText = findViewById(R.id.etMessage)
         val etString = etMessage.text.toString()
@@ -140,16 +137,18 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
             val content = ContentModel(etString, deviceIp) // Create content model
             etMessage.text.clear()
 
-            // Use CoroutineScope to launch a coroutine for sending the message
-            CoroutineScope(Dispatchers.Main).launch { // Use Main context for UI
+            CoroutineScope(Dispatchers.IO).launch { // Use IO context for network operation
                 try {
-                    // Assuming your client is properly initialized and accessible here
-                    client?.sendMessage(content.toString()) // Convert ContentModel to String
-                    chatListAdapter?.addItemToEnd(content) // Update chat list
-                    updateUI() // Refresh UI after sending
+                    client?.sendMessage(content) // Use the updated sendMessage method
+                    runOnUiThread {
+                        chatListAdapter?.addItemToEnd(content) // Update chat list
+                        updateUI() // Refresh UI after sending
+                    }
                 } catch (e: Exception) {
                     Log.e("CommunicationActivity", "Failed to send message", e)
-                    Toast.makeText(this@CommunicationActivity, "Failed to send message", Toast.LENGTH_SHORT).show()
+                    runOnUiThread {
+                        Toast.makeText(this@CommunicationActivity, "Failed to send message", Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         } else {
@@ -158,13 +157,12 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
         }
     }
 
-
     override fun onWiFiDirectStateChanged(isEnabled: Boolean) {
         wfdAdapterEnabled = isEnabled
         val text = if (isEnabled) {
-            "There was a state change in the WiFi Direct. Currently it is enabled!"
+            "WiFi Direct is enabled!"
         } else {
-            "There was a state change in the WiFi Direct. Currently it is disabled! Try turning on the WiFi adapter"
+            "WiFi Direct is disabled! Try turning on the WiFi adapter."
         }
 
         Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
@@ -190,23 +188,30 @@ class CommunicationActivity : AppCompatActivity(), WifiDirectInterface, PeerList
 
         wfdManager?.connectToPeer(peer)
 
+        // Use peer.deviceAddress to get the device's address
+        val serverIp = peer.deviceAddress // Use the correct property for the peer's address
+        val serverPort = 12345 // Keep this as an Int, but check if Client requires a String
+
         // Initialize the client with the server's IP, port, and studentID
-        client = Client("192.168.100.206", 8888, studentID)
+        client = Client( serverIp, serverPort, studentID, this ) // Convert port to String if necessary
 
         // Connect to the server
-        CoroutineScope(Dispatchers.Main).launch {
+        CoroutineScope(Dispatchers.IO).launch {
             try {
-                client?.connect() // This will now work with the studentID
-                Toast.makeText(this@CommunicationActivity, "Connected to the server", Toast.LENGTH_SHORT).show()
+                client?.sendInitialMessage() // Ensure sendInitialMessage is defined in Client
+                runOnUiThread {
+                    Toast.makeText(this@CommunicationActivity, "Connected to the server", Toast.LENGTH_SHORT).show()
+                }
             } catch (e: Exception) {
-                Toast.makeText(this@CommunicationActivity, "Connection failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                runOnUiThread {
+                    Toast.makeText(this@CommunicationActivity, "Connection failed: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
 
         wfdHasConnection = true
         updateUI()
     }
-
 
     override fun onContent(content: ContentModel) {
         runOnUiThread {

@@ -4,54 +4,58 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import com.example.thestudentapp.models.ContentModel
+import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
+import java.io.BufferedWriter
 import java.io.InputStreamReader
-import java.io.PrintWriter
 import java.net.Socket
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import java.security.MessageDigest
 import java.util.Base64
+import kotlin.concurrent.thread
 
-class Client(private val serverIp: String, private val serverPort: Int, private val studentID: String) { // Added studentID here
+class Client(
+    private val serverIp: String,
+    private val serverPort: Int,
+    private val studentID: String,  // Student ID as a property
+    private val networkMessageInterface: NetworkMessageInterface  // To handle message callback
+) {
 
     private var socket: Socket? = null
     private var reader: BufferedReader? = null
-    private var writer: PrintWriter? = null
+    private var writer: BufferedWriter? = null
+    private var aesKey: SecretKeySpec? = null
+    private var aesIv: IvParameterSpec? = null
+    var isAuthenticated = false
 
-    // Connect to the TCP server
-    @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun connect() {  // No need to pass studentID here since it's a class property now
-        withContext(Dispatchers.IO) {
+    init {
+        // Establish connection in a separate thread
+        thread {
             try {
                 socket = Socket(serverIp, serverPort)
-                reader = BufferedReader(InputStreamReader(socket?.getInputStream()))
-                writer = socket?.getOutputStream()?.let { PrintWriter(it, true) }
+                reader = socket?.inputStream?.bufferedReader()
+                writer = socket?.outputStream?.bufferedWriter()
                 Log.d("TcpClient", "Connected to server")
 
-                withContext(Dispatchers.IO){
-                    try{
-                        writer?.println(studentID)  // Use class property studentID
-                        Log.d("Tcp Client", "Student ID sent: $studentID")
+                // Send initial studentID for challenge-response authentication
+                writer?.write("$studentID\n")
+                writer?.flush()
+                Log.d("Tcp Client", "Student ID sent: $studentID")
 
-                        val challenge = reader?.readLine()
-                        if(challenge != null){
-                            Log.d("Tcp Server", "Challenge received: $challenge")
-                            val seed = hashStrSha256(studentID)  // Use class property studentID
-                            val aesKey = generateAESKey(seed)
-                            val aesIv = generateIV(seed)
-
-                            val encryptedText = encryptMessage(challenge, aesKey, aesIv)
-                            writer?.println(encryptedText)
-                            Log.d("Tcp Client","Encrypted text sent: $encryptedText")
-                        }else{
-                            Log.e("Tcp Client", "Challenge not received")
+                // Listen for server messages
+                while (socket?.isConnected == true) {
+                    try {
+                        val serverResponse = reader?.readLine()
+                        if (serverResponse != null) {
+                            handleServerResponse(serverResponse)
                         }
-                    }catch (e:Exception){
-                        Log.d("Tcp Client", "ERROR")
+                    } catch (e: Exception) {
+                        Log.e("TcpClient", "Error receiving message", e)
+                        break
                     }
                 }
             } catch (e: Exception) {
@@ -60,72 +64,49 @@ class Client(private val serverIp: String, private val serverPort: Int, private 
         }
     }
 
-    suspend fun sendMessage(message: String) {
-        withContext(Dispatchers.IO) {
+    private fun handleServerResponse(response: String) {
+        try {
+            val serverContent = Gson().fromJson(response, ContentModel::class.java)
+            networkMessageInterface.onContent(serverContent)  // Handle the content via interface
+        } catch (e: Exception) {
+            Log.e("TcpClient", "Error parsing server response", e)
+        }
+    }
+    suspend fun sendInitialMessage() {
+        // Create a message object to send, for example:
+        val initialMessage = ContentModel("Student ID: $studentID", serverIp) // Adjust as needed
+        sendMessage(initialMessage) // Send the message using your existing sendMessage method
+    }
+
+    fun sendMessage(content: ContentModel) {
+        thread {
             try {
-                writer?.println(message)
+                val contentAsStr = Gson().toJson(content)
+                writer?.write("$contentAsStr\n")
                 writer?.flush()
-                Log.d("TcpClient", "Message sent: $message")
+                Log.d("TcpClient", "Message sent: $contentAsStr")
             } catch (e: Exception) {
                 Log.e("TcpClient", "Error sending message", e)
             }
         }
     }
 
+    // Encryption and decryption methods
     @RequiresApi(Build.VERSION_CODES.O)
-    suspend fun receiveMessages() {
-        withContext(Dispatchers.IO) {
-            try {
-                while (socket?.isConnected == true) {
-                    val receivedMessage = reader?.readLine()
-                    if (receivedMessage != null) {
-                        val seed = hashStrSha256(studentID)  // Use class property studentID
-                        val aesKey = generateAESKey(seed)
-                        val aesIv = generateIV(seed)
-
-                        val decryptedMessage = decryptMessage(receivedMessage, aesKey, aesIv)
-                        Log.d("TcpClient", "Message received: $decryptedMessage")
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("TcpClient", "Error receiving message", e)
-            }
-        }
-    }
-
-    // Disconnect from the server
-    suspend fun disconnect() {
-        withContext(Dispatchers.IO) {
-            try {
-                socket?.close()
-                Log.d("TcpClient", "Disconnected from server")
-            } catch (e: Exception) {
-                Log.e("TcpClient", "Error disconnecting", e)
-            }
-        }
-    }
-
-    // Encryption and decryption functions (similar to the server)
-    @RequiresApi(Build.VERSION_CODES.O)
-    private fun encryptMessage(plaintext: String, aesKey: SecretKeySpec, aesIv: IvParameterSpec): String {
-        val plainTextByteArr = plaintext.toByteArray(Charsets.UTF_8)
-
+    private fun encryptMessage(plaintext: String): String {
         val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
         cipher.init(Cipher.ENCRYPT_MODE, aesKey, aesIv)
-
-        val encrypted = cipher.doFinal(plainTextByteArr)
+        val encrypted = cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8))
         return Base64.getEncoder().encodeToString(encrypted)
     }
 
     @RequiresApi(Build.VERSION_CODES.O)
-    private fun decryptMessage(encryptedText: String, aesKey: SecretKeySpec, aesIv: IvParameterSpec): String {
-        val textToDecrypt = Base64.getDecoder().decode(encryptedText)
-
+    private fun decryptMessage(encryptedText: String): String {
+        val decoded = Base64.getDecoder().decode(encryptedText)
         val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
         cipher.init(Cipher.DECRYPT_MODE, aesKey, aesIv)
-
-        val decrypted = cipher.doFinal(textToDecrypt)
-        return String(decrypted)
+        val decrypted = cipher.doFinal(decoded)
+        return String(decrypted, Charsets.UTF_8)
     }
 
     private fun hashStrSha256(str: String): String {
@@ -143,4 +124,16 @@ class Client(private val serverIp: String, private val serverPort: Int, private 
         val first16Chars = seed.take(16).padEnd(16, '0')  // Ensure length is 16
         return IvParameterSpec(first16Chars.toByteArray())
     }
+
+    fun close() {
+        thread {
+            try {
+                socket?.close()
+                Log.d("TcpClient", "Disconnected from server")
+            } catch (e: Exception) {
+                Log.e("TcpClient", "Error disconnecting", e)
+            }
+        }
+    }
 }
+
